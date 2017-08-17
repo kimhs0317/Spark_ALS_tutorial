@@ -1,2 +1,7 @@
 target/
 .settings/
+data/people.txt
+data/people.json
+data/music/user_artist_data.txt
+data/music/artist_data.txt
+data/music/artist_alias.txt

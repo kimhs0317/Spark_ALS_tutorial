@@ -10,7 +10,8 @@ import scala.collection.mutable.WrappedArray
 object test_example2 {
   
   case class Rating(userid:Int, singerid:Int, rating:Float)
-  case class Singer(singerid:Int, singername:String)
+  case class Singer(singerid:String, singername:String)
+  val file_path = "C:/Users/polarium/Desktop/ALS/result"
   
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
@@ -21,8 +22,8 @@ object test_example2 {
     
     spark.sparkContext.setLogLevel("ERROR")
     
-//    run_ALS(spark)
-    result_sql(spark)
+    run_ALS(spark)
+//    result_sql(spark)
     
     spark.stop()
   }
@@ -35,7 +36,9 @@ object test_example2 {
   }
   def parseSinger(str: String): Singer = {
     val fields = str.split("\t")
-    Singer(fields(0).toInt, fields(1).toString())
+    val singerID = fields(0)
+    val singerName = str.replace(fields(0)+"\t","")
+    Singer(singerID.toString(), singerName.toString())
   }
   
   //ALS setting
@@ -72,7 +75,8 @@ object test_example2 {
     
     val userRecs = model.recommendForAllUsers(3)
     
-//    userRecs.coalesce(1).write.json("data/ex_result")
+    userRecs.show(20)
+//    userRecs.coalesce(1).write.json(file_path+"/test_result")
 //    userRecs.show(10)
   }
   
@@ -80,7 +84,7 @@ object test_example2 {
   private def result_sql(spark:SparkSession): Unit = {
     import spark.implicits._
     
-    val result = spark.read.json("data/ex_result/part-00000-3f15fe20-e84a-4b68-9736-c47c14a6b9d7-c000.json")
+    val result = spark.read.json(file_path+"/*.json")
     val singer = spark.read.textFile("data/music/artist_data.txt")
                       .map(parseSinger)
                       .toDF()
@@ -88,14 +92,29 @@ object test_example2 {
     result.createOrReplaceTempView("rec_song")
     singer.createOrReplaceTempView("singer")
     
-    val recommendation = spark.sql("select recommendations.singerid as singerid from rec_song where userid = 2008050")
+    val recommendation = spark.sql("select userid, recommendations.singerid from rec_song")
     recommendation.createOrReplaceTempView("recom")
     
-    val rec_singer = spark.sql("select * from singer s, recom r where s.singerid = r.singerid[0]")
+//    recommendation.show()
+    val sql = 
+      "select "+
+        "r.userid, "+
+        "s.* "+
+      "from "+
+        "singer s, "+
+        "recom r "+
+      "where "+
+        "s.singerid = r.singerid[0] or "+
+        "s.singerid = r.singerid[1] or "+
+        "s.singerid = r.singerid[2] "+
+      "order by "+
+        "r.userid asc"
+    val rec_singer = spark.sql(sql)
     
-    rec_singer.show()
+    rec_singer.coalesce(1).write.json(file_path+"/recommendate singer")
        
     singer.unpersist()
     result.unpersist()
+    recommendation.unpersist()
   }
 }
