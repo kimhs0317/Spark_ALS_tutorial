@@ -1,4 +1,4 @@
-package scala.test
+package als.implicit_test
 
 import scala.io.Source
 

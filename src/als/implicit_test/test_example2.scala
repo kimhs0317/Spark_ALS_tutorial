@@ -1,11 +1,8 @@
-package scala.test
+package als.implicit_test
 
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
-// $example off$
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.DataFrameNaFunctions
-import scala.collection.mutable.WrappedArray
 
 object test_example2 {
   
@@ -22,8 +19,12 @@ object test_example2 {
     
     spark.sparkContext.setLogLevel("ERROR")
     
-    run_ALS(spark)
-//    result_sql(spark)
+    try {
+//      run_ALS(spark)
+      result_sql(spark)
+    } catch {
+      case ex : Exception => println(ex)
+    }
     
     spark.stop()
   }
@@ -53,8 +54,10 @@ object test_example2 {
     val Array(training, test) = real.randomSplit(Array(0.8, 0.2))
     
     val als = new ALS()
+      .setAlpha(40.0)
       .setMaxIter(10)
-      .setRegParam(0.01)
+      .setRank(10)
+      .setRegParam(1)  //lambda
       .setUserCol("userid")
       .setItemCol("singerid")
       .setRatingCol("rating")
@@ -69,22 +72,19 @@ object test_example2 {
       .setMetricName("rmse")
       .setLabelCol("rating")
       .setPredictionCol("prediction")
-    val rmse = evaluator.evaluate(predictions) 
-    
+    val rmse = evaluator.evaluate(predictions)
     println(s"Root-mean-square error = $rmse")
     
     val userRecs = model.recommendForAllUsers(3)
-    
-    userRecs.show(20)
+    userRecs.show()
 //    userRecs.coalesce(1).write.json(file_path+"/test_result")
-//    userRecs.show(10)
   }
   
   //test sparkSQL
   private def result_sql(spark:SparkSession): Unit = {
     import spark.implicits._
     
-    val result = spark.read.json(file_path+"/*.json")
+    val result = spark.read.json(file_path+"/test_result/*.json")
     val singer = spark.read.textFile("data/music/artist_data.txt")
                       .map(parseSinger)
                       .toDF()
@@ -95,7 +95,6 @@ object test_example2 {
     val recommendation = spark.sql("select userid, recommendations.singerid from rec_song")
     recommendation.createOrReplaceTempView("recom")
     
-//    recommendation.show()
     val sql = 
       "select "+
         "r.userid, "+

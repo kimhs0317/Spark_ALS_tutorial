@@ -30,5 +30,13 @@
 		    <version>2.2.0</version>
 		    <scope>provided</scope>
 		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.scalanlp/breeze-natives_2.11 -->
+		<dependency>
+		    <groupId>org.scalanlp</groupId>
+		    <artifactId>breeze-natives_2.11</artifactId>
+		    <version>0.13.2</version>
+		</dependency>
+				
 	</dependencies>
 </project>

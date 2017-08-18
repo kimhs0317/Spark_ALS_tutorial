@@ -16,7 +16,7 @@
  */
 
 // scalastyle:off println
-package scala.test
+package org.apache.spark.examples.mllib
 
 // $example on$
 import org.apache.spark.mllib.evaluation.{RankingMetrics, RegressionMetrics}
@@ -28,22 +28,15 @@ object RankingMetricsExample {
   def main(args: Array[String]) {
     val spark = SparkSession
       .builder
-      .master("local")
       .appName("RankingMetricsExample")
       .getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")  //non displaying spark runtime log in Spark 2.0
     import spark.implicits._
     // $example on$
     // Read in the ratings data
-    val ratings = spark.read.textFile("data/sample_movielens_data.txt").rdd.map { line =>
+    val ratings = spark.read.textFile("data/mllib/sample_movielens_data.txt").rdd.map { line =>
       val fields = line.split("::")
       Rating(fields(0).toInt, fields(1).toInt, fields(2).toDouble - 2.5)
     }.cache()
-    
-    //Rating class return : (user, product, rating) of each RDD element
-//    println("ratings user : ", ratings.map(i => i.user).distinct().collect().mkString(", "))
-//    println("ratings product : ", ratings.map(i => i.product).distinct().collect().mkString(", "))
-//    println("ratings user : ", ratings.map(i => i.rating).collect().mkString(", "))
 
     // Map ratings to 1 or 0, 1 indicating a movie that should be recommended
     val binarizedRatings = ratings.map(r => Rating(r.user, r.product,
