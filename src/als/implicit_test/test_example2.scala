@@ -3,6 +3,11 @@ package als.implicit_test
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
 import org.apache.spark.sql.SparkSession
+import breeze.linalg._
+import org.apache.commons.math3.analysis.function.Subtract
+import org.apache.spark.ml.regression.GeneralizedLinearRegression.Power
+import org.apache.spark.sql.Dataset
+import org.apache.spark.sql.DataFrameReader
 
 object test_example2 {
   
@@ -75,8 +80,8 @@ object test_example2 {
     val rmse = evaluator.evaluate(predictions)
     println(s"Root-mean-square error = $rmse")
     
-    val userRecs = model.recommendForAllUsers(3)
-    userRecs.show()
+//    val userRecs = model.recommendForAllUsers(3)
+//    userRecs.show()
 //    userRecs.coalesce(1).write.json(file_path+"/test_result")
   }
   

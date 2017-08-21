@@ -16,7 +16,7 @@
  */
 
 // scalastyle:off println
-package org.apache.spark.examples.mllib
+package scala.test
 
 // $example on$
 import org.apache.spark.mllib.evaluation.{RankingMetrics, RegressionMetrics}
@@ -28,12 +28,15 @@ object RankingMetricsExample {
   def main(args: Array[String]) {
     val spark = SparkSession
       .builder
+      .master("local")
       .appName("RankingMetricsExample")
       .getOrCreate()
     import spark.implicits._
+    
+    spark.sparkContext.setLogLevel("ERROR")
     // $example on$
     // Read in the ratings data
-    val ratings = spark.read.textFile("data/mllib/sample_movielens_data.txt").rdd.map { line =>
+    val ratings = spark.read.textFile("data/sample_movielens_data.txt").rdd.map { line =>
       val fields = line.split("::")
       Rating(fields(0).toInt, fields(1).toInt, fields(2).toDouble - 2.5)
     }.cache()
@@ -75,7 +78,7 @@ object RankingMetricsExample {
 
     // Instantiate metrics object
     val metrics = new RankingMetrics(relevantDocuments)
-
+    
     // Precision at K
     Array(1, 3, 5).foreach { k =>
       println(s"Precision at $k = ${metrics.precisionAt(k)}")
