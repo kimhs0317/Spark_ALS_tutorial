@@ -3,15 +3,17 @@ package TripAdvisor
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
 import org.apache.spark.sql.SparkSession
+import scala.util.parsing.json.JSON
 
 object recommendation_system {
   
-  val json_FilePath = "C:/Users/polarium/Desktop/ALS/TripAdvisorJson/json/"
+  case class Rate(userID: Int, ItemID: Int, Rating: Float)
+  val json_FilePath = "C:/Users/polarium/Desktop/ALS/TripAdvisorJson/"
   
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
       .builder()
-      .master("local[*]")
+      .master("local[4]")
       .appName("Recommendation System")
       .getOrCreate()
     //log level setting  
@@ -23,6 +25,10 @@ object recommendation_system {
       case error: Exception => println(error)
     }
   }
+  
+//  def parseRating(str: Json): Rate = {
+//    Rate()
+//  }
   
   private def Learn_ALS_Model(spark: SparkSession): Unit = {
     val rating = spark.read.json(json_FilePath+"72572.json")
