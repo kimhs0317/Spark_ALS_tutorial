@@ -12,7 +12,7 @@ object filtering_data {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
       .builder()
-      .master("local[4]")
+      .master("local[*]")
       .appName("Read Data")
       .getOrCreate()
       
@@ -33,27 +33,38 @@ object filtering_data {
   }
   
   def save_file(spark:SparkSession): Unit = {
-    val HotelData = spark.read.json(base_json_path+"json/7*.json")
+    val HotelData = spark.read.json(base_json_path+"json/777*.json")
     
     //HotelData view 생성 후 query로 필요한 데이터를 뽑아온다.
     HotelData.createOrReplaceTempView("HotelData")
-    val data = spark.sql(
+    val seq = spark.sql(
         "select "+
-          "AuthorID, "+
+          "ROW_NUMBER() OVER(ORDER BY Author) as userID, "+
+          "Author "+
+        "from "+
+          "HotelData "+
+        "LATERAL VIEW explode(Reviews.Author) a AS Author "+
+        "GROUP BY Author"
+    )
+    seq.createOrReplaceTempView("seq")
+    val base_data = spark.sql(
+        "select "+
           "Author, "+
           "HotelInfo.HotelID as itemID, "+
           "Rating "+
         "from "+
           "HotelData "+
-        "LATERAL VIEW posexplode(Reviews.Author) a AS AuthorID, Author "+
-        "LATERAL VIEW posexplode(Reviews.Ratings.Overall) o AS RatingID, Rating "+
+        "LATERAL VIEW posexplode(Reviews.Author) a AS a_num, Author "+
+        "LATERAL VIEW posexplode(Reviews.Ratings.Overall) o AS r_num, Rating "+
         "where "+
-          "AuthorID = RatingID"
+          "a_num = r_num"
     )
-    data.show()
+    val data = base_data.join(seq, Seq("Author")).select("userID","itemID","Rating")
+    seq.coalesce(1).write.json(base_json_path+"test/user_list")
+    data.coalesce(1).write.json(base_json_path+"test/test_result")
     
-    data.coalesce(1).write.json(base_json_path+"test_result")
-//    base_data.coalesce(1).write.json(base_json_path+"Colaborative Filtering BaseData")
+    
+//    data.coalesce(1).write.json(base_json_path+"Colaborative Filtering BaseData")
   }
   
   def read_file(spark:SparkSession): Unit = {

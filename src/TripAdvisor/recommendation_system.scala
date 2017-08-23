@@ -4,6 +4,12 @@ import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
 import org.apache.spark.sql.SparkSession
 import scala.util.parsing.json.JSON
+import com.google.gson.JsonObject
+import org.apache.spark.sql.DataFrameReader
+import org.json4s.jackson.Json
+import org.apache.spark.sql.catalyst.ScalaReflection
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.functions._
 
 object recommendation_system {
   
@@ -16,22 +22,22 @@ object recommendation_system {
       .master("local[4]")
       .appName("Recommendation System")
       .getOrCreate()
+    import spark.implicits._
     //log level setting  
     spark.sparkContext.setLogLevel("ERROR")
+    val schema = ScalaReflection.schemaFor[Rate].dataType.asInstanceOf[StructType]
     
     try {
+      val data = spark.read.schema(schema).json(json_FilePath+"test/test_result/*.json").as[Rate]
+      data.filter($"userID".isNotNull).show()
       
     }catch {
       case error: Exception => println(error)
     }
   }
   
-//  def parseRating(str: Json): Rate = {
-//    Rate()
-//  }
-  
   private def Learn_ALS_Model(spark: SparkSession): Unit = {
-    val rating = spark.read.json(json_FilePath+"72572.json")
+    val rating = spark.read.json(json_FilePath+"test_result/*.json")
       .toDF()
       
     val Array(training, test) = rating.randomSplit(Array(0.8, 0.2))
