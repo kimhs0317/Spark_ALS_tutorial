@@ -56,10 +56,11 @@ object ALSExample {
       .map(parseRating)
       .toDF()
     val Array(training, test) = ratings.randomSplit(Array(0.8, 0.2))
-
+    
     // Build the recommendation model using ALS on the training data
     val als = new ALS()
-      .setMaxIter(5)
+      .setMaxIter(10)
+      .setRank(20)
       .setRegParam(0.01)
       .setUserCol("userId")
       .setItemCol("movieId")
@@ -70,6 +71,7 @@ object ALSExample {
     // Note we set cold start strategy to 'drop' to ensure we don't get NaN evaluation metrics
     model.setColdStartStrategy("drop")
     val predictions = model.transform(test)
+    predictions.show()
 
     val evaluator = new RegressionEvaluator()
       .setMetricName("rmse")

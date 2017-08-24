@@ -16,7 +16,7 @@ object filtering_data {
       .appName("Read Data")
       .getOrCreate()
       
-    spark.sparkContext.setLogLevel("ERROR")
+//    spark.sparkContext.setLogLevel("ERROR")
       
     try {
       val start = System.currentTimeMillis()
@@ -33,7 +33,7 @@ object filtering_data {
   }
   
   def save_file(spark:SparkSession): Unit = {
-    val HotelData = spark.read.json(base_json_path+"json/777*.json")
+    val HotelData = spark.read.json(base_json_path+"json/*.json")
     
     //HotelData view 생성 후 query로 필요한 데이터를 뽑아온다.
     HotelData.createOrReplaceTempView("HotelData")
@@ -46,7 +46,6 @@ object filtering_data {
         "LATERAL VIEW explode(Reviews.Author) a AS Author "+
         "GROUP BY Author"
     )
-    seq.createOrReplaceTempView("seq")
     val base_data = spark.sql(
         "select "+
           "Author, "+
@@ -60,11 +59,7 @@ object filtering_data {
           "a_num = r_num"
     )
     val data = base_data.join(seq, Seq("Author")).select("userID","itemID","Rating")
-    seq.coalesce(1).write.json(base_json_path+"test/user_list")
-    data.coalesce(1).write.json(base_json_path+"test/test_result")
-    
-    
-//    data.coalesce(1).write.json(base_json_path+"Colaborative Filtering BaseData")
+    data.coalesce(1).write.json(base_json_path+"Colaborative Filtering BaseData")
   }
   
   def read_file(spark:SparkSession): Unit = {

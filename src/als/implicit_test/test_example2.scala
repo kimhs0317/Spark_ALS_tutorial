@@ -21,12 +21,14 @@ object test_example2 {
       .appName("implicit_ALS")
       .master("local[*]")
       .getOrCreate()
+    import spark.implicits._
     
     spark.sparkContext.setLogLevel("ERROR")
     
     try {
-//      run_ALS(spark)
-      result_sql(spark)
+      run_ALS(spark)
+//      result_sql(spark)
+      
     } catch {
       case ex : Exception => println(ex)
     }

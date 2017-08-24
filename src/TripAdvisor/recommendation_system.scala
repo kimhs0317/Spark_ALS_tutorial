@@ -13,7 +13,7 @@ import org.apache.spark.sql.functions._
 
 object recommendation_system {
   
-  case class Rate(userID: Int, ItemID: Int, Rating: Float)
+  case class Rate(userID: Long, ItemID: Int, Rating: Float)
   val json_FilePath = "C:/Users/polarium/Desktop/ALS/TripAdvisorJson/"
   
   def main(args: Array[String]): Unit = {
@@ -22,33 +22,37 @@ object recommendation_system {
       .master("local[4]")
       .appName("Recommendation System")
       .getOrCreate()
-    import spark.implicits._
+    
     //log level setting  
     spark.sparkContext.setLogLevel("ERROR")
     val schema = ScalaReflection.schemaFor[Rate].dataType.asInstanceOf[StructType]
     
     try {
-      val data = spark.read.schema(schema).json(json_FilePath+"test/test_result/*.json").as[Rate]
-      data.filter($"userID".isNotNull).show()
-      
+      Learn_ALS_Model(spark)
     }catch {
       case error: Exception => println(error)
     }
   }
+  def parseSinger(userID: String, itemID: String, Rating: String): Rate = {
+    Rate(userID.toInt, itemID.toInt, Rating.toInt)
+  }
   
   private def Learn_ALS_Model(spark: SparkSession): Unit = {
-    val rating = spark.read.json(json_FilePath+"test_result/*.json")
+    import spark.implicits._
+    val rating = spark.read.json(json_FilePath+"test/test_result/*.json")
+      .select('userID.cast("int"), 'itemID.cast("int"), 'Rating.cast("float"))
       .toDF()
-      
+          
     val Array(training, test) = rating.randomSplit(Array(0.8, 0.2))
     
+    val start = System.currentTimeMillis()
     val als = new ALS()
       .setMaxIter(10)
-      .setRank(10)
-      .setRegParam(0.1)  //lambda
+      .setRank(30)
+      .setRegParam(0.01)  //lambda
       .setUserCol("userID")
-      .setItemCol("hotelID")
-      .setRatingCol("overall")
+      .setItemCol("itemID")
+      .setRatingCol("Rating")
     val model = als.fit(training)
     
     model.setColdStartStrategy("drop")
@@ -57,10 +61,12 @@ object recommendation_system {
     
     val evaluator = new RegressionEvaluator()
       .setMetricName("rmse")
-      .setLabelCol("rating")
+      .setLabelCol("Rating")
       .setPredictionCol("prediction")
     val rmse = evaluator.evaluate(prediction)
     println(s"Root-mean-square error = $rmse")
+    val end = System.currentTimeMillis()
+    println("runtime : "+(end-start)/1000.0)
   }
   
 }
