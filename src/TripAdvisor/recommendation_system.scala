@@ -22,30 +22,25 @@ object recommendation_system {
       .master("local[4]")
       .appName("Recommendation System")
       .getOrCreate()
-    
     //log level setting  
     spark.sparkContext.setLogLevel("ERROR")
-    val schema = ScalaReflection.schemaFor[Rate].dataType.asInstanceOf[StructType]
     
     try {
-      Learn_ALS_Model(spark)
+//      Learn_ALS_Model(spark)
+      recommendate(spark)
     }catch {
       case error: Exception => println(error)
     }
   }
-  def parseSinger(userID: String, itemID: String, Rating: String): Rate = {
-    Rate(userID.toInt, itemID.toInt, Rating.toInt)
-  }
   
   private def Learn_ALS_Model(spark: SparkSession): Unit = {
     import spark.implicits._
-    val rating = spark.read.json(json_FilePath+"test/test_result/*.json")
+    val rating = spark.read.json(json_FilePath+"Colaborative Filtering BaseData/*.json")
       .select('userID.cast("int"), 'itemID.cast("int"), 'Rating.cast("float"))
       .toDF()
           
     val Array(training, test) = rating.randomSplit(Array(0.8, 0.2))
     
-    val start = System.currentTimeMillis()
     val als = new ALS()
       .setMaxIter(10)
       .setRank(30)
@@ -65,8 +60,35 @@ object recommendation_system {
       .setPredictionCol("prediction")
     val rmse = evaluator.evaluate(prediction)
     println(s"Root-mean-square error = $rmse")
-    val end = System.currentTimeMillis()
-    println("runtime : "+(end-start)/1000.0)
+    
+    val user = model.recommendForAllUsers(5)
+    
+//    user.coalesce(1).write.json(json_FilePath+"recommendForAllUsers")
   }
   
+  private def recommendate(spark: SparkSession): Unit = {
+     import spark.implicits._
+     val result = spark.read.json(json_FilePath+"recommendForAllUsers/*.json")
+     val user = spark.read.json(json_FilePath+"UserList/*.json")
+     
+//     val recommend = result.select($"userID", explode($"recommendations").as("recommend"))
+//       .withColumn("itemID", $"recommend.itemID")
+     val recommend = result.select("userID", "recommendations.itemID")
+       .join(user, Seq("userID"))
+     recommend.show()
+     
+//     user.createOrReplaceTempView("user")
+//     recommend.createOrReplaceTempView("recommend")
+//     val re_list = spark.sql(
+//        "select "+
+//          "u.Author as user, "+
+//          "r.itemID as recommendItem "+
+//        "from "+
+//          "recommend r "+
+//          "LEFT JOIN user u on r.userID = u.userID "+
+//        "ORDER BY r.userID ASC"
+//    )
+//    
+//    re_list.show()
+  }
 }
