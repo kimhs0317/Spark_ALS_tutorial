@@ -3,12 +3,7 @@ package TripAdvisor
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
 import org.apache.spark.sql.SparkSession
-import scala.util.parsing.json.JSON
-import com.google.gson.JsonObject
 import org.apache.spark.sql.DataFrameReader
-import org.json4s.jackson.Json
-import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.functions._
 
 object recommendation_system {
@@ -17,7 +12,7 @@ object recommendation_system {
   val json_FilePath = "C:/Users/polarium/Desktop/ALS/TripAdvisorJson/"
   
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession
+    val spark = SparkSession 
       .builder()
       .master("local[4]")
       .appName("Recommendation System")
@@ -26,8 +21,8 @@ object recommendation_system {
     spark.sparkContext.setLogLevel("ERROR")
     
     try {
-//      Learn_ALS_Model(spark)
-      recommendate(spark)
+      Learn_ALS_Model(spark)
+//      recommendate(spark)
     }catch {
       case error: Exception => println(error)
     }
@@ -52,31 +47,41 @@ object recommendation_system {
     
     model.setColdStartStrategy("drop")
     
+    println(test.count())
+    
     val prediction = model.transform(test)
+    
+    prediction.show()
     
     val evaluator = new RegressionEvaluator()
       .setMetricName("rmse")
       .setLabelCol("Rating")
       .setPredictionCol("prediction")
-    val rmse = evaluator.evaluate(prediction)
+    val rmse = evaluator.evaluate(prediction )
     println(s"Root-mean-square error = $rmse")
     
-    val user = model.recommendForAllUsers(5)
+//    val user = model.recommendForAllUsers(5)
     
 //    user.coalesce(1).write.json(json_FilePath+"recommendForAllUsers")
   }
   
   private def recommendate(spark: SparkSession): Unit = {
      import spark.implicits._
+     
+     val HotelData = spark.read.json(json_FilePath+"json/*.json")
+     
      val result = spark.read.json(json_FilePath+"recommendForAllUsers/*.json")
      val user = spark.read.json(json_FilePath+"UserList/*.json")
+     val hotelName = HotelData.select($"HotelInfo.HotelID".as("itemID"), $"HotelInfo.Name".as("itemName"))
      
-//     val recommend = result.select($"userID", explode($"recommendations").as("recommend"))
-//       .withColumn("itemID", $"recommend.itemID")
-     val recommend = result.select("userID", "recommendations.itemID")
+     val recommend = result.select($"userID", explode($"recommendations").as("recommend"))
+       .withColumn("itemID", $"recommend.itemID")
        .join(user, Seq("userID"))
-     recommend.show()
+       .join(hotelName, Seq("itemID"))
      
+     recommend.select("Author", "userID", "itemName", "itemID")
+       .coalesce(1).write.json(json_FilePath+"Recommend Hotel List")
+       
 //     user.createOrReplaceTempView("user")
 //     recommend.createOrReplaceTempView("recommend")
 //     val re_list = spark.sql(
