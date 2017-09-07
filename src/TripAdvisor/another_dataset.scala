@@ -16,7 +16,7 @@ object another_dataset {
     
     try {
       
-    	filtering_data(spark)
+    	kMeans(spark)
       
     } catch {
       case error:Exception => println(error)
@@ -24,7 +24,7 @@ object another_dataset {
   }
   
   
-  def filtering_data(spark: SparkSession): Unit = {
+  def kMeans(spark: SparkSession): Unit = {
     import spark.implicits._
     
     val data = spark.read.json("C:/Users/polarium/Desktop/ALS/Hotel-Review dataset/review.txt/*.json")
@@ -48,7 +48,7 @@ object another_dataset {
         'offering_id.cast("int")).na.fill(0)
         
     df2.show()
-    println("count : "+df2.count())
+//    println("count : "+df2.count())
     
     val assembler = new VectorAssembler()
         .setInputCols(Array("num_cities", "num_helpful_votes", "num_reviews", "num_type_reviews", "itemID", "helpful_votes", "offering_id"))
@@ -57,42 +57,14 @@ object another_dataset {
     val df3 = assembler.transform(df2)
     
     val kmeans = new KMeans()
+        .setK(5)
         .setFeaturesCol("feature")
     val model = kmeans.fit(df3)
     
     model.clusterCenters.foreach(println)
     
-    
-//    val user = data.select("author.username").dropDuplicates().withColumn("userid", monotonically_increasing_id)
-//    val df = data.select($"author.username".as("username"), $"id".as("itemID"), $"ratings.overall".as("Rating"))
-//      .join(user, Seq("username"))
-//    val df2 = df.select('userid.cast("int"), 'itemID.cast("long"), 'Rating.cast("float"))
-//      .toDF()
-//    val Array(training, test) = df2.randomSplit(Array(0.8, 0.2))
-//    
-//    val als = new ALS()
-//      .setMaxIter(10)
-//      .setRank(20)
-//      .setRegParam(0.01)  //lambda
-//      .setUserCol("userid")
-//      .setItemCol("itemID")
-//      .setRatingCol("Rating")
-//    val model = als.fit(training)
-//    
-//    model.setColdStartStrategy("drop")
-//    
-//    println(test.count())
-//    
-//    val prediction = model.transform(test)
-//    
-//    prediction.show()
-//    
-//    val evaluator = new RegressionEvaluator()
-//      .setMetricName("rmse")
-//      .setLabelCol("Rating")
-//      .setPredictionCol("prediction")
-//    val rmse = evaluator.evaluate(prediction)
-//    println(s"Root-mean-square error = $rmse")
+    val WSSSE = model.computeCost(df3)
+    println(s"Within Set Sum of Squared Errors = $WSSSE")
   }
   
 }
