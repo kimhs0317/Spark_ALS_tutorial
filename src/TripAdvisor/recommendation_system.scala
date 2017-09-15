@@ -47,8 +47,6 @@ object recommendation_system {
     
     model.setColdStartStrategy("drop")
     
-    println(test.count())
-    
     val prediction = model.transform(test)
     
     prediction.show()

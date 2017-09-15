@@ -17,14 +17,9 @@ object filtering_data {
     spark.sparkContext.setLogLevel("ERROR")
     
     try {
-      val start = System.currentTimeMillis()
-      
       //17minutes..
 //      save_file(spark)
-      read_file(spark)
-      
-      val end = System.currentTimeMillis()
-      println("runtime : "+(end-start)/1000.0)
+      reload_file(spark)
     } catch {
       case error:Exception => println(error)
     }
@@ -33,6 +28,8 @@ object filtering_data {
   def save_file(spark:SparkSession): Unit = {
     import spark.implicits._
     val HotelData = spark.read.json(base_json_path+"json/*.json")
+    
+    HotelData.printSchema()
     
     //HotelData view 생성 후 query로 필요한 데이터를 뽑아온다.
     HotelData.createOrReplaceTempView("HotelData")
@@ -49,11 +46,11 @@ object filtering_data {
       .withColumn("Author", $"Reviews.Author")
       .withColumn("Rating", $"Reviews.Ratings.Overall")
     val data = base_data.join(seq, Seq("Author")).select("userID", "itemID", "Rating")
-    data.coalesce(1).write.json(base_json_path+"Colaborative Filtering BaseData")
+//    data.coalesce(1).write.json(base_json_path+"Colaborative Filtering BaseData")
   }
   
-  def read_file(spark:SparkSession): Unit = {
-    val sample = spark.read.json(base_json_path+"Colaborative Filtering BaseData/*.json")
+  def reload_file(spark:SparkSession): Unit = {
+    val sample = spark.read.json(base_json_path+"recommendForAllUsers/*.json")
     sample.printSchema()
     sample.show()
   }

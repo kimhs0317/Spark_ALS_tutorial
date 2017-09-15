@@ -23,7 +23,6 @@ object another_dataset {
     }
   }
   
-  
   def kMeans(spark: SparkSession): Unit = {
     import spark.implicits._
     
